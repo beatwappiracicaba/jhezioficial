@@ -9,12 +9,14 @@ let supabaseClient = null;
 export function getSupabaseClient() {
   if (supabaseClient) return supabaseClient;
 
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const url = import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
   console.debug('Supabase env:', {
-    VITE_SUPABASE_URL: url ? '<present>' : '<missing>',
-    VITE_SUPABASE_ANON_KEY: key ? '<present>' : '<missing>',
+    import_meta_url: import.meta.env?.VITE_SUPABASE_URL ? '<present>' : '<missing>',
+    process_env_url: process.env?.VITE_SUPABASE_URL ? '<present>' : '<missing>',
+    import_meta_key: import.meta.env?.VITE_SUPABASE_ANON_KEY ? '<present>' : '<missing>',
+    process_env_key: process.env?.VITE_SUPABASE_ANON_KEY ? '<present>' : '<missing>',
   });
 
   if (!url || !key) {
