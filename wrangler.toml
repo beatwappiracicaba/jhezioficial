@@ -1,6 +1,8 @@
 name = "jhezi-site"
 compatibility_date = "2025-01-01"
+type = "javascript"
 main = "./functions/[[path]].js"
+pages_build_output_dir = "dist"
 
 [build]
 command = "npm run build"
