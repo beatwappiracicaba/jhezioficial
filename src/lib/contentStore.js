@@ -12,12 +12,21 @@ export function getSupabaseClient() {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  if (!url || !key) return null;
+  console.debug('Supabase env:', {
+    VITE_SUPABASE_URL: url ? '<present>' : '<missing>',
+    VITE_SUPABASE_ANON_KEY: key ? '<present>' : '<missing>',
+  });
+
+  if (!url || !key) {
+    console.error('Supabase não configurado: falta VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY');
+    return null;
+  }
 
   try {
     supabaseClient = createClient(url, key);
     return supabaseClient;
-  } catch {
+  } catch (error) {
+    console.error('Erro ao criar cliente Supabase:', error);
     return null;
   }
 }
