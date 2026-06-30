@@ -4,21 +4,17 @@ const STORAGE_KEY = 'jhezi-content';
 const ADMIN_KEY = 'jhezi-admin';
 const THEME_KEY = 'jhezi-theme';
 
-const FALLBACK_SUPABASE_URL = 'https://mjhnmnycjdwqotyxpqha.supabase.co';
-const FALLBACK_SUPABASE_ANON_KEY = 'sb_publishable_NkOpEGW4oITNgNi0euTHXg_vxhEeVq7';
-
 let supabaseClient = null;
 
 export function getSupabaseClient() {
   if (supabaseClient) return supabaseClient;
 
-  const url = import.meta.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY;
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   console.debug('Supabase env:', {
-    import_meta_url: import.meta.env?.VITE_SUPABASE_URL ? '<present>' : '<missing>',
-    import_meta_key: import.meta.env?.VITE_SUPABASE_ANON_KEY ? '<present>' : '<missing>',
-    using_fallback: url === FALLBACK_SUPABASE_URL || key === FALLBACK_SUPABASE_ANON_KEY,
+    import_meta_url: url ? '<present>' : '<missing>',
+    import_meta_key: key ? '<present>' : '<missing>',
   });
 
   if (!url || !key) {

@@ -70,6 +70,35 @@ create table if not exists public.videos (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+alter table public.site_config enable row level security;
+create policy public_read_site_config on public.site_config
+for select using (true);
+create policy public_manage_site_config on public.site_config
+for all using (true) with check (true);
+
+alter table public.highlights enable row level security;
+create policy public_read_highlights on public.highlights
+for select using (true);
+create policy public_manage_highlights on public.highlights
+for all using (true) with check (true);
+
+alter table public.events enable row level security;
+create policy public_read_events on public.events
+for select using (true);
+create policy public_manage_events on public.events
+for all using (true) with check (true);
+
+alter table public.media_items enable row level security;
+create policy public_read_media_items on public.media_items
+for select using (true);
+create policy public_manage_media_items on public.media_items
+for all using (true) with check (true);
+
+alter table public.videos enable row level security;
+create policy public_read_videos on public.videos
+for select using (true);
+create policy public_manage_videos on public.videos
+for all using (true) with check (true);
 
 create table public.admin_accounts (
   id serial primary key,
@@ -79,6 +108,10 @@ create table public.admin_accounts (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+alter table public.admin_accounts enable row level security;
+create policy public_read_admin_accounts on public.admin_accounts
+for select using (true);
 
 insert into public.admin_accounts (email, password, role)
 values ('alan@produtor.com', '@Aggtr4907', 'producer')
