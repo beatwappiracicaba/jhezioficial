@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import './styles.css';
 import singerImg from '../img/Jhezi.png';
 import logoImg from '../img/logo.png';
-import { getSession, loadContent, loadTheme, onAuthStateChange, saveContent, signIn, signOut } from './lib/contentStore';
+import { loadAdminStatus, loadContent, loadTheme, saveAdminStatus, saveContent, verifyAdmin, saveTheme } from './lib/contentStore';
 
-const ADMIN_EMAIL = 'produtor@jhezi.com';
+const ADMIN_EMAIL = 'alan@produtor.com';
 
 const DEFAULT_CONTENT = {
   heroEyebrow: 'Jhezi - O Diferenciado do Forró',
@@ -66,7 +66,7 @@ function App() {
   const [theme, setTheme] = useState('dark');
   const isAdminRoute = typeof window !== 'undefined' && window.location.pathname === '/admin';
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [authLoading, setAuthLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [highlightsText, setHighlightsText] = useState(DEFAULT_CONTENT.highlights.join('\n'));
   const [eventsText, setEventsText] = useState(
@@ -85,21 +85,11 @@ function App() {
           .join('\n')
       );
       setTheme(loadTheme());
-
-      const session = await getSession();
-      setIsAdmin(Boolean(session?.user));
+      setIsAdmin(loadAdminStatus());
       setAuthLoading(false);
     };
 
-    const unsubscribe = onAuthStateChange((event, session) => {
-      setIsAdmin(Boolean(session?.user));
-      if (event === 'SIGNED_OUT') {
-        window.location.href = '/';
-      }
-    });
-
     init();
-    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -114,20 +104,22 @@ function App() {
     setLoginError('');
     setAuthLoading(true);
 
-    const { error } = await signIn(loginForm.email, loginForm.password);
+    const valid = await verifyAdmin(loginForm.email, loginForm.password);
     setAuthLoading(false);
 
-    if (error) {
+    if (!valid) {
       setLoginError('E-mail ou senha inválidos.');
       return;
     }
 
+    setIsAdmin(true);
+    saveAdminStatus(true);
     window.location.href = '/admin';
   };
 
-  const handleLogout = async () => {
-    await signOut();
+  const handleLogout = () => {
     setIsAdmin(false);
+    saveAdminStatus(false);
   };
 
   const handleHighlightsChange = (value) => {
