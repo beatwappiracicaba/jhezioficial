@@ -1,0 +1,9 @@
+[project]
+name = "jhezi-site"
+
+[db]
+port = 54322
+shadow_port = 54320
+
+[api]
+port = 54321

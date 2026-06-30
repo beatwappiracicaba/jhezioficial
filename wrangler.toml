@@ -1,0 +1,9 @@
+name = "jhezi-site"
+compatibility_date = "2025-01-01"
+main = "./functions/[[path]].js"
+
+[build]
+command = "npm run build"
+
+[site]
+bucket = "./dist"
