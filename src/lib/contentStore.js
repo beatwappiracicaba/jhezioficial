@@ -60,12 +60,42 @@ export async function saveContent(content) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(content));
 }
 
-export function loadAdminStatus() {
-  return window.localStorage.getItem(ADMIN_KEY) === 'true';
+export async function getSession() {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const {
+      data: { session },
+      error,
+    } = await client.auth.getSession();
+    if (error) throw error;
+    return session;
+  } catch {
+    return null;
+  }
 }
 
-export function saveAdminStatus(status) {
-  window.localStorage.setItem(ADMIN_KEY, String(status));
+export function onAuthStateChange(callback) {
+  const client = getSupabaseClient();
+  if (!client) return () => {};
+
+  const { data } = client.auth.onAuthStateChange((event, session) => callback(event, session));
+  return () => data?.subscription?.unsubscribe();
+}
+
+export async function signIn(email, password) {
+  const client = getSupabaseClient();
+  if (!client) return { data: null, error: new Error('Supabase não configurado') };
+
+  return client.auth.signInWithPassword({ email, password });
+}
+
+export async function signOut() {
+  const client = getSupabaseClient();
+  if (!client) return { data: null, error: new Error('Supabase não configurado') };
+
+  return client.auth.signOut();
 }
 
 export function loadTheme() {

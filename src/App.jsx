@@ -2,21 +2,20 @@ import { useEffect, useMemo, useState } from 'react';
 import './styles.css';
 import singerImg from '../img/Jhezi.png';
 import logoImg from '../img/logo.png';
-import { loadAdminStatus, loadContent, loadTheme, saveAdminStatus, saveContent, saveTheme } from './lib/contentStore';
+import { getSession, loadContent, loadTheme, onAuthStateChange, saveContent, signIn, signOut } from './lib/contentStore';
 
-const ADMIN_USER = 'producer';
-const ADMIN_PASS = 'jhezi2026';
+const ADMIN_EMAIL = 'produtor@jhezi.com';
 
 const DEFAULT_CONTENT = {
-  heroEyebrow: 'O Diferenciado do Forró',
-  heroTitle: 'De Minas para o Brasil, com presença que marca a noite.',
+  heroEyebrow: 'Jhezi - O Diferenciado do Forró',
+  heroTitle: 'Som que agita festas, eventos e noites inesquecíveis.',
   heroLead:
-    'Jhezi leva emoção, identidade e energia para cada palco, com um estilo marcante que faz o público parar e viver o momento.',
-  heroButtonText: 'Reservar apresentação',
-  heroSecondaryText: 'Conhecer mais',
-  aboutTitle: 'Uma performance forte, autêntica e inesquecível.',
+    'Jhezi traz forró, pisadinha e emoção para o palco, encantando o público com repertório pesado e presença única.',
+  heroButtonText: 'Reservar agora',
+  heroSecondaryText: 'Ver agenda',
+  aboutTitle: 'Mais de 10 anos de estrada no forró e pisadinha.',
   aboutText:
-    'O Jhezi transforma cada evento em uma experiência única, com repertório vibrante, presença de palco e uma conexão forte com o público.',
+    'Jhezi transforma cada evento em momento memorável, com repertório autoral e hits que o público canta junto do primeiro ao último acorde.',
   highlights: [
     'Performance intensa com presença de palco',
     'Repertório cheio de forró, pisadinha e emoção',
@@ -66,7 +65,9 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [theme, setTheme] = useState('dark');
   const isAdminRoute = typeof window !== 'undefined' && window.location.pathname === '/admin';
-  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loginError, setLoginError] = useState('');
   const [highlightsText, setHighlightsText] = useState(DEFAULT_CONTENT.highlights.join('\n'));
   const [eventsText, setEventsText] = useState(
     DEFAULT_CONTENT.events.map((event) => `${event.date}|${event.title}|${event.place}`).join('\n')
@@ -84,10 +85,21 @@ function App() {
           .join('\n')
       );
       setTheme(loadTheme());
-      setIsAdmin(loadAdminStatus());
+
+      const session = await getSession();
+      setIsAdmin(Boolean(session?.user));
+      setAuthLoading(false);
     };
 
+    const unsubscribe = onAuthStateChange((event, session) => {
+      setIsAdmin(Boolean(session?.user));
+      if (event === 'SIGNED_OUT') {
+        window.location.href = '/';
+      }
+    });
+
     init();
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -97,19 +109,25 @@ function App() {
   const releases = useMemo(() => content.media.filter((item) => item.category === 'release'), [content.media]);
   const shows = useMemo(() => content.media.filter((item) => item.category === 'show'), [content.media]);
 
-  const handleLogin = (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault();
-    if (loginForm.username === ADMIN_USER && loginForm.password === ADMIN_PASS) {
-      setIsAdmin(true);
-      localStorage.setItem('jhezi-admin', 'true');
+    setLoginError('');
+    setAuthLoading(true);
+
+    const { error } = await signIn(loginForm.email, loginForm.password);
+    setAuthLoading(false);
+
+    if (error) {
+      setLoginError('E-mail ou senha inválidos.');
       return;
     }
-    window.alert('Credenciais inválidas.');
+
+    window.location.href = '/admin';
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     setIsAdmin(false);
-    saveAdminStatus(false);
   };
 
   const handleHighlightsChange = (value) => {
@@ -174,11 +192,6 @@ function App() {
     saveTheme(nextTheme);
   };
 
-  const handleOpenAdmin = (event) => {
-    event.preventDefault();
-    window.open('/admin', '_blank', 'noopener,noreferrer');
-  };
-
   const handleImageUpload = (event, target) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -212,14 +225,15 @@ function App() {
                   <p className="eyebrow">Painel do produtor</p>
                   <h3>Acesse para editar fotos, agenda e contatos</h3>
                   <label>
-                    Usuário
-                    <input value={loginForm.username} onChange={(event) => setLoginForm((prev) => ({ ...prev, username: event.target.value }))} />
+                    E-mail
+                    <input type="email" value={loginForm.email} onChange={(event) => setLoginForm((prev) => ({ ...prev, email: event.target.value }))} required />
                   </label>
                   <label>
                     Senha
-                    <input type="password" value={loginForm.password} onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))} />
+                    <input type="password" value={loginForm.password} onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))} required />
                   </label>
-                  <button className="btn btn-primary" type="submit">Entrar</button>
+                  {loginError && <p className="form-error">{loginError}</p>}
+                  <button className="btn btn-primary" type="submit" disabled={authLoading}>{authLoading ? 'Entrando...' : 'Entrar'}</button>
                 </form>
               ) : (
                 <>
@@ -358,7 +372,9 @@ function App() {
       <header className="hero">
         <nav className="nav container">
           <a className="brand-wrap" href="#top">
-            <img src={content.logoImage || logoImg} alt="Logo Jhezi" className="logo" />
+            <span className="logo-wrap">
+              <img src={content.logoImage || logoImg} alt="Logo Jhezi" className="logo" />
+            </span>
             <span>Jhezi</span>
           </a>
           <div className="nav-links">
@@ -367,7 +383,7 @@ function App() {
             <a href="#agenda">Agenda</a>
             <a href="#videos">Vídeos</a>
             <a href="#contato">Contato</a>
-            <a href="/admin" target="_blank" rel="noopener noreferrer">Login</a>
+            <a href="/admin">Login</a>
           </div>
         </nav>
 
@@ -506,164 +522,6 @@ function App() {
           </div>
         </section>
 
-        <section className="section container" id="admin">
-          <div className="admin-shell">
-            {!isAdmin ? (
-              <form className="admin-card" onSubmit={handleLogin}>
-                <p className="eyebrow">Painel do produtor</p>
-                <h3>Acesse para editar fotos, agenda e contatos</h3>
-                <label>
-                  Usuário
-                  <input value={loginForm.username} onChange={(event) => setLoginForm((prev) => ({ ...prev, username: event.target.value }))} />
-                </label>
-                <label>
-                  Senha
-                  <input type="password" value={loginForm.password} onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))} />
-                </label>
-                <button className="btn btn-primary" type="submit">Entrar</button>
-              </form>
-            ) : (
-              <>
-                <div className="admin-toolbar">
-                  <h3>Painel do produtor</h3>
-                  <div className="admin-actions">
-                    <button className="btn btn-secondary" type="button" onClick={handleThemeToggle}>Tema: {theme === 'dark' ? 'Escuro' : 'Claro'}</button>
-                    <button className="btn btn-secondary" type="button" onClick={handleLogout}>Sair</button>
-                  </div>
-                </div>
-
-                <div className="admin-grid">
-                  <div className="admin-card">
-                    <h4>Conteúdo principal</h4>
-                    <label>
-                      Legenda do topo
-                      <input value={content.heroEyebrow} onChange={(event) => setContent((prev) => ({ ...prev, heroEyebrow: event.target.value }))} />
-                    </label>
-                    <label>
-                      Título principal
-                      <input value={content.heroTitle} onChange={(event) => setContent((prev) => ({ ...prev, heroTitle: event.target.value }))} />
-                    </label>
-                    <label>
-                      Texto principal
-                      <textarea value={content.heroLead} onChange={(event) => setContent((prev) => ({ ...prev, heroLead: event.target.value }))} />
-                    </label>
-                    <label>
-                      Texto do sobre
-                      <textarea value={content.aboutTitle} onChange={(event) => setContent((prev) => ({ ...prev, aboutTitle: event.target.value }))} />
-                    </label>
-                    <label>
-                      Descrição do sobre
-                      <textarea value={content.aboutText} onChange={(event) => setContent((prev) => ({ ...prev, aboutText: event.target.value }))} />
-                    </label>
-                    <label>
-                      Destaques (um por linha)
-                      <textarea value={highlightsText} onChange={(event) => handleHighlightsChange(event.target.value)} />
-                    </label>
-                    <label>
-                      Agenda (data|título|local, um por linha)
-                      <textarea value={eventsText} onChange={(event) => handleEventsChange(event.target.value)} />
-                    </label>
-                  </div>
-
-                  <div className="admin-card">
-                    <h4>Logo e foto principal</h4>
-                    <label>
-                      Logo
-                      <input type="file" accept="image/*" onChange={(event) => handleImageUpload(event, 'logoImage')} />
-                    </label>
-                    <label>
-                      Foto principal
-                      <input type="file" accept="image/*" onChange={(event) => handleImageUpload(event, 'heroImage')} />
-                    </label>
-                    <div className="preview-row">
-                      <img src={content.logoImage || logoImg} alt="Preview logo" />
-                      <img src={content.heroImage || singerImg} alt="Preview principal" />
-                    </div>
-                  </div>
-
-                  <div className="admin-card">
-                    <h4>Contato e redes</h4>
-                    <label>
-                      E-mail
-                      <input value={content.contactEmail} onChange={(event) => setContent((prev) => ({ ...prev, contactEmail: event.target.value }))} />
-                    </label>
-                    <label>
-                      WhatsApp (apenas números)
-                      <input value={content.whatsapp} onChange={(event) => setContent((prev) => ({ ...prev, whatsapp: event.target.value }))} />
-                    </label>
-                    <label>
-                      Instagram
-                      <input value={content.instagram} onChange={(event) => setContent((prev) => ({ ...prev, instagram: event.target.value }))} />
-                    </label>
-                    <label>
-                      YouTube
-                      <input value={content.youtube} onChange={(event) => setContent((prev) => ({ ...prev, youtube: event.target.value }))} />
-                    </label>
-                    <label>
-                      Título de contato
-                      <input value={content.contactTitle} onChange={(event) => setContent((prev) => ({ ...prev, contactTitle: event.target.value }))} />
-                    </label>
-                    <label>
-                      Texto de contato
-                      <textarea value={content.contactText} onChange={(event) => setContent((prev) => ({ ...prev, contactText: event.target.value }))} />
-                    </label>
-                  </div>
-
-                  <div className="admin-card">
-                    <h4>Adicionar lançamentos e shows</h4>
-                    <label>
-                      Título
-                      <input value={mediaForm.title} onChange={(event) => setMediaForm((prev) => ({ ...prev, title: event.target.value }))} />
-                    </label>
-                    <label>
-                      Descrição
-                      <input value={mediaForm.description} onChange={(event) => setMediaForm((prev) => ({ ...prev, description: event.target.value }))} />
-                    </label>
-                    <label>
-                      Tipo
-                      <select value={mediaForm.category} onChange={(event) => setMediaForm((prev) => ({ ...prev, category: event.target.value }))}>
-                        <option value="show">Show</option>
-                        <option value="release">Lançamento</option>
-                      </select>
-                    </label>
-                    <label>
-                      Imagem
-                      <input type="file" accept="image/*" onChange={handleMediaUpload} />
-                    </label>
-                    <button className="btn btn-primary" type="button" onClick={handleAddMedia}>Salvar mídia</button>
-
-                    <div className="media-list">
-                      {content.media.map((item) => (
-                        <div className="media-item" key={item.id}>
-                          <div>
-                            <strong>{item.title}</strong>
-                            <p>{item.description}</p>
-                          </div>
-                          <button className="btn btn-secondary" type="button" onClick={() => handleDeleteMedia(item.id)}>Excluir</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-
-        <section id="contato" className="section container">
-          <div className="contact-card">
-            <div>
-              <p className="eyebrow">Reservas</p>
-              <h2>{content.contactTitle}</h2>
-              <p>{content.contactText}</p>
-              <div className="contact-links">
-                <a href={`mailto:${content.contactEmail}`}>{content.contactEmail}</a>
-                <a href={`https://wa.me/55${content.whatsapp}`}>Whats: {content.whatsapp}</a>
-              </div>
-            </div>
-            <a className="btn btn-primary" href={`https://wa.me/55${content.whatsapp}`}>Falar com Jhezi</a>
-          </div>
-        </section>
       </main>
 
       <a className="whatsapp-float" href={`https://wa.me/55${content.whatsapp}`} target="_blank" rel="noreferrer">WhatsApp</a>
