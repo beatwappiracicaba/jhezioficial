@@ -209,7 +209,7 @@ export function loadAdminStatus() {
 
 export async function verifyAdmin(email, password) {
   const client = getSupabaseClient();
-  if (!client) return false;
+  if (!client) return { valid: false, message: 'Supabase não configurado. Verifique .env.' };
 
   const normalizedEmail = String(email || '').trim().toLowerCase();
   const normalizedPassword = String(password || '').trim();
@@ -222,9 +222,31 @@ export async function verifyAdmin(email, password) {
       .eq('password', normalizedPassword)
       .maybeSingle();
 
-    return !error && !!data;
-  } catch {
-    return false;
+    if (error) {
+      return { valid: false, message: error.message || 'Erro ao consultar admin_accounts.' };
+    }
+
+    if (!data) {
+      const { data: existing, error: existingError } = await client
+        .from('admin_accounts')
+        .select('id')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (existingError) {
+        return { valid: false, message: existingError.message || 'Erro ao validar credenciais.' };
+      }
+
+      if (existing) {
+        return { valid: false, message: 'Senha incorreta.' };
+      }
+
+      return { valid: false, message: 'E-mail não encontrado.' };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    return { valid: false, message: error?.message || 'Falha de autenticação.' };
   }
 }
 

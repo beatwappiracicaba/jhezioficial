@@ -104,11 +104,11 @@ function App() {
     setLoginError('');
     setAuthLoading(true);
 
-    const valid = await verifyAdmin(loginForm.email, loginForm.password);
+    const result = await verifyAdmin(loginForm.email, loginForm.password);
     setAuthLoading(false);
 
-    if (!valid) {
-      setLoginError('E-mail ou senha inválidos.');
+    if (!result.valid) {
+      setLoginError(result.message || 'E-mail ou senha inválidos.');
       return;
     }
 
