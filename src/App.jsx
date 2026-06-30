@@ -4,83 +4,47 @@ import singerImg from '../img/Jhezi.png';
 import logoImg from '../img/logo.png';
 import { loadAdminStatus, loadContent, loadTheme, saveAdminStatus, saveContent, verifyAdmin, saveTheme } from './lib/contentStore';
 
-const ADMIN_EMAIL = 'alan@produtor.com';
-
-const DEFAULT_CONTENT = {
-  heroEyebrow: 'Jhezi - O Diferenciado do Forró',
-  heroTitle: 'Som que agita festas, eventos e noites inesquecíveis.',
-  heroLead:
-    'Jhezi traz forró, pisadinha e emoção para o palco, encantando o público com repertório pesado e presença única.',
-  heroButtonText: 'Reservar agora',
-  heroSecondaryText: 'Ver agenda',
-  aboutTitle: 'Mais de 10 anos de estrada no forró e pisadinha.',
-  aboutText:
-    'Jhezi transforma cada evento em momento memorável, com repertório autoral e hits que o público canta junto do primeiro ao último acorde.',
-  highlights: [
-    'Performance intensa com presença de palco',
-    'Repertório cheio de forró, pisadinha e emoção',
-    'Atendimento personalizado para cada evento',
-  ],
-  events: [
-    { date: '15/07', title: 'Festa Comemorativa', place: 'São Paulo' },
-    { date: '22/07', title: 'Evento Privado', place: 'Campinas' },
-    { date: '05/08', title: 'Show Aberto', place: 'Belo Horizonte' },
-  ],
-  contactTitle: 'Pronto para transformar seu evento em algo inesquecível?',
-  contactText:
-    'Entre em contato para saber sobre agenda, disponibilidade e uma apresentação feita sob medida para o seu público.',
-  contactEmail: 'contato@jhezi.com',
-  whatsapp: '33998485840',
-  instagram: 'https://www.instagram.com/jhezi_odiferenciado_doforro',
-  youtube: 'https://youtube.com/@jhezi_odiferenciado_doforro',
-  heroImage: singerImg,
-  logoImage: logoImg,
-  media: [
-    {
-      id: 1,
-      title: 'Último show',
-      description: 'Momento de grande energia em palco.',
-      category: 'show',
-      image: singerImg,
-    },
-    {
-      id: 2,
-      title: 'Novo lançamento',
-      description: 'Repertório novo para o público cantar.',
-      category: 'release',
-      image: singerImg,
-    },
-  ],
-  videos: [
-    {
-      id: 1,
-      title: 'Show ao vivo',
-      url: 'https://www.youtube.com/embed/ScMzIvxBSi4',
-    },
-  ],
+const EMPTY_CONTENT = {
+  heroEyebrow: '',
+  heroTitle: '',
+  heroLead: '',
+  heroButtonText: '',
+  heroSecondaryText: '',
+  aboutTitle: '',
+  aboutText: '',
+  highlights: [],
+  events: [],
+  contactTitle: '',
+  contactText: '',
+  contactEmail: '',
+  whatsapp: '',
+  instagram: '',
+  youtube: '',
+  heroImage: '',
+  logoImage: '',
+  media: [],
+  videos: [],
 };
 
 function App() {
-  const [content, setContent] = useState(DEFAULT_CONTENT);
+  const [content, setContent] = useState(EMPTY_CONTENT);
   const [isAdmin, setIsAdmin] = useState(false);
   const [theme, setTheme] = useState('dark');
   const isAdminRoute = typeof window !== 'undefined' && window.location.pathname === '/admin';
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [authLoading, setAuthLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [highlightsText, setHighlightsText] = useState(DEFAULT_CONTENT.highlights.join('\n'));
-  const [eventsText, setEventsText] = useState(
-    DEFAULT_CONTENT.events.map((event) => `${event.date}|${event.title}|${event.place}`).join('\n')
-  );
+  const [highlightsText, setHighlightsText] = useState('');
+  const [eventsText, setEventsText] = useState('');
   const [mediaForm, setMediaForm] = useState({ title: '', description: '', category: 'show', image: '' });
 
   useEffect(() => {
     const init = async () => {
-      const savedContent = await loadContent(DEFAULT_CONTENT);
-      setContent({ ...DEFAULT_CONTENT, ...savedContent, media: savedContent.media || DEFAULT_CONTENT.media, videos: savedContent.videos || DEFAULT_CONTENT.videos });
-      setHighlightsText((savedContent.highlights || DEFAULT_CONTENT.highlights).join('\n'));
+      const savedContent = await loadContent();
+      setContent({ ...EMPTY_CONTENT, ...savedContent });
+      setHighlightsText((savedContent.highlights || []).join('\n'));
       setEventsText(
-        (savedContent.events || DEFAULT_CONTENT.events)
+        (savedContent.events || [])
           .map((event) => `${event.date}|${event.title}|${event.place}`)
           .join('\n')
       );
@@ -200,7 +164,7 @@ function App() {
         <header className="hero">
           <nav className="nav container">
             <a className="brand-wrap" href="/">
-              <img src={content.logoImage || logoImg} alt="Logo Jhezi" className="logo" />
+              <img src={content.logoImage} alt="Logo Jhezi" className="logo" />
               <span>Jhezi</span>
             </a>
             <div className="nav-links">
@@ -281,8 +245,8 @@ function App() {
                         <input type="file" accept="image/*" onChange={(event) => handleImageUpload(event, 'heroImage')} />
                       </label>
                       <div className="preview-row">
-                        <img src={content.logoImage || logoImg} alt="Preview logo" />
-                        <img src={content.heroImage || singerImg} alt="Preview principal" />
+                        <img src={content.logoImage} alt="Preview logo" />
+                        <img src={content.heroImage} alt="Preview principal" />
                       </div>
                     </div>
 
@@ -365,7 +329,7 @@ function App() {
         <nav className="nav container">
           <a className="brand-wrap" href="#top">
             <span className="logo-wrap">
-              <img src={content.logoImage || logoImg} alt="Logo Jhezi" className="logo" />
+              <img src={content.logoImage} alt="Logo Jhezi" className="logo" />
             </span>
             <span>Jhezi</span>
           </a>
@@ -398,7 +362,7 @@ function App() {
           <div className="hero-visual">
             <div className="orb orb-a" />
             <div className="orb orb-b" />
-            <img src={content.heroImage || singerImg} alt="Cantor Jhezi em apresentação" className="singer-photo" />
+            <img src={content.heroImage} alt="Cantor Jhezi em apresentação" className="singer-photo" />
           </div>
         </div>
       </header>
